@@ -1,7 +1,8 @@
 import { Plugin, TFolder } from 'obsidian';
 import { registerExportCommands } from './commands/export-folder';
 import { runExport, type ExportCallbacks } from './export/exporter';
-import { BatchPdfExportSettingTab, DEFAULT_SETTINGS, type BatchPdfExportSettings } from './settings';
+import { DEFAULT_SETTINGS, type BatchPdfExportSettings } from './settings';
+import { BatchPdfExportSettingTab } from './ui/settings-tab';
 import type { ExportOptions, ExportResult } from './types';
 
 export default class BatchPdfExportPlugin extends Plugin {

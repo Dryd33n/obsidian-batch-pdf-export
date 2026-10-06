@@ -73,11 +73,11 @@ export class AssetInliner {
 		);
 	}
 
-	/** Reads a local resource (vault file or bundled app asset) as a data URL. */
+	/** Reads a vault image as a data URL. Other sources are left as they are. */
 	toDataUrl(src: string): Promise<string | null> {
 		let pending = this.cache.get(src);
 		if (!pending) {
-			pending = src.startsWith(this.vaultPrefix) ? this.readVaultFile(src) : fetchAppAsset(src);
+			pending = src.startsWith(this.vaultPrefix) ? this.readVaultFile(src) : Promise.resolve(null);
 			this.cache.set(src, pending);
 		}
 		return pending;
@@ -97,26 +97,6 @@ function stripQuery(url: string): string {
 	return query < 0 ? url : url.slice(0, query);
 }
 
-/**
- * Reads a file bundled with Obsidian, such as a font. These live behind the
- * local app:// protocol, which only `fetch` can read (`requestUrl` cannot).
- */
-async function fetchAppAsset(src: string): Promise<string | null> {
-	try {
-		const response = await fetch(src);
-		if (!response.ok) return null;
-		const blob = await response.blob();
-		return await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = () => resolve(reader.result as string);
-			reader.onerror = () => reject(reader.error ?? new Error('Could not read file'));
-			reader.readAsDataURL(blob);
-		});
-	} catch {
-		return null;
-	}
-}
-
 function expandCollapsed(el: HTMLElement): void {
 	el.querySelectorAll('.is-collapsed').forEach((node) => node.removeClass('is-collapsed'));
 	el.querySelectorAll<HTMLElement>('.callout-content, .heading-collapse-content').forEach((node) => {
@@ -128,23 +108,22 @@ function expandCollapsed(el: HTMLElement): void {
 function replaceUnprintable(el: HTMLElement): void {
 	el.querySelectorAll<HTMLElement>(UNPRINTABLE_EMBED_SELECTOR).forEach((embed) => {
 		const name = embed.getAttribute('src') ?? embed.getAttribute('alt') ?? 'file';
-		embed.replaceWith(placeholder(el, 'Embedded file not included', name));
+		embed.replaceWith(placeholder('Embedded file not included', name));
 	});
 	el.querySelectorAll('video, audio').forEach((media) => {
 		const name = media.getAttribute('src') ?? '';
-		media.replaceWith(placeholder(el, 'Media not included', decodeURIComponent(name.split('/').pop() ?? '')));
+		media.replaceWith(placeholder('Media not included', decodeURIComponent(name.split('/').pop() ?? '')));
 	});
 	el.querySelectorAll('iframe, webview').forEach((frame) => {
 		const src = frame.getAttribute('src') ?? '';
-		const box = placeholder(el, 'Embedded web content', '');
+		const box = placeholder('Embedded web content', '');
 		if (/^https?:/i.test(src)) box.createEl('a', { cls: 'external-link', href: src, text: src });
 		frame.replaceWith(box);
 	});
 }
 
-function placeholder(el: HTMLElement, label: string, detail: string): HTMLElement {
-	const box = el.doc.createElement('div');
-	box.addClass('bpe-placeholder');
+function placeholder(label: string, detail: string): HTMLElement {
+	const box = createDiv({ cls: 'bpe-placeholder' });
 	box.createSpan({ cls: 'bpe-placeholder-label', text: label });
 	if (detail) box.createSpan({ cls: 'bpe-placeholder-detail', text: detail });
 	return box;
@@ -154,13 +133,11 @@ function placeholder(el: HTMLElement, label: string, detail: string): HTMLElemen
 function convertCanvases(el: HTMLElement): void {
 	el.querySelectorAll('canvas').forEach((canvas) => {
 		try {
-			const img = el.doc.createElement('img');
-			img.src = canvas.toDataURL('image/png');
-			img.width = canvas.clientWidth || canvas.width;
+			const img = createEl('img', { attr: { src: canvas.toDataURL('image/png'), width: canvas.clientWidth || canvas.width } });
 			canvas.replaceWith(img);
 		} catch {
 			// A canvas tainted by cross-origin content cannot be exported.
-			canvas.replaceWith(placeholder(el, 'Canvas content not included', ''));
+			canvas.replaceWith(placeholder('Canvas content not included', ''));
 		}
 	});
 }

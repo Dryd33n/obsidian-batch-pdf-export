@@ -1,6 +1,6 @@
-import * as path from 'path';
 import { TFile, TFolder } from 'obsidian';
 import type { ExportNote } from '../types';
+import { nodePath } from '../utils/node';
 import { naturalCompare, sanitizeFileName, uniqueName } from '../utils/paths';
 
 /**
@@ -32,6 +32,7 @@ export function collectNotes(folder: TFolder, includeSubfolders: boolean): Expor
 
 /** Assigns each note a PDF path inside `outputDir`, mirroring the folder structure. */
 export function planOutputPaths(notes: ExportNote[], outputDir: string): void {
+	const path = nodePath();
 	const takenByDir = new Map<string, Set<string>>();
 	for (const note of notes) {
 		const segments = note.relativeFolder ? note.relativeFolder.split('/').map(sanitizeFileName) : [];

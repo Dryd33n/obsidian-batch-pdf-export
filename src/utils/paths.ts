@@ -1,5 +1,4 @@
-import * as path from 'path';
-import { pathToFileURL, fileURLToPath } from 'url';
+import { nodePath, nodeUrl } from './node';
 
 /** Characters not allowed in file names on Windows, macOS or Linux. */
 // eslint-disable-next-line no-control-regex -- control characters are invalid in file names
@@ -27,12 +26,12 @@ export function ensureExtension(filePath: string, ext: string): string {
 }
 
 export function toFileUrl(absolutePath: string): string {
-	return pathToFileURL(absolutePath).href;
+	return nodeUrl().pathToFileURL(absolutePath).href;
 }
 
 export function fromFileUrl(url: string): string | null {
 	try {
-		return fileURLToPath(url);
+		return nodeUrl().fileURLToPath(url);
 	} catch {
 		return null;
 	}
@@ -40,6 +39,7 @@ export function fromFileUrl(url: string): string | null {
 
 /** Relative path from one file to another, with forward slashes. */
 export function relativeFilePath(fromFile: string, toFile: string): string {
+	const path = nodePath();
 	return path.relative(path.dirname(fromFile), toFile).split(path.sep).join('/');
 }
 

@@ -1,9 +1,10 @@
-import * as path from 'path';
-import { TFolder, moment } from 'obsidian';
+import { TFolder } from 'obsidian';
 import type BatchPdfExportPlugin from '../main';
 import { PAGE_SIZES_MM, type BatchPdfExportSettings } from '../settings';
 import type { ExportOptions, ExportResult, RenderedNote } from '../types';
+import { formatDate } from '../utils/dates';
 import { pauseBackgroundThrottling } from '../utils/electron';
+import { nodePath } from '../utils/node';
 import { relativeFilePath, fromFileUrl } from '../utils/paths';
 import { AssetInliner } from './assets';
 import { collectNotes, planOutputPaths } from './collect';
@@ -64,7 +65,7 @@ export async function runExport(
 
 	const layout = pageLayout(settings);
 	const inliner = new AssetInliner(app);
-	const styles = new StyleCollector(inliner, settings.useTheme);
+	const styles = new StyleCollector(settings.useTheme);
 	const linkContext: LinkContext = {
 		app,
 		mode: options.mode,
@@ -123,7 +124,7 @@ export async function runExport(
 
 		if (options.mode === 'single' && !result.cancelled && rendered.length > 0) {
 			callbacks.onProgress(`Creating PDF from ${rendered.length} notes…`);
-			const subtitle = `${rendered.length} ${rendered.length === 1 ? 'note' : 'notes'} · Exported ${moment(exportTime).format(settings.dateFormat)}`;
+			const subtitle = `${rendered.length} ${rendered.length === 1 ? 'note' : 'notes'} · Exported ${formatDate(exportTime, settings.dateFormat)}`;
 			await printCombined(printer, styles, layout, rendered, outputPath, {
 				title: folderName,
 				subtitle,
@@ -162,7 +163,7 @@ async function askForOutput(
 			return null;
 		}
 	}
-	plugin.settings.lastExportDirectory = path.dirname(chosen);
+	plugin.settings.lastExportDirectory = nodePath().dirname(chosen);
 	await plugin.saveSettings();
 	return chosen;
 }
@@ -200,7 +201,7 @@ async function printSeparate(
 	page: RenderedNote,
 ): Promise<void> {
 	const target = page.note.outputPath!;
-	await printer.load(buildNoteSection(page), await styles.collect(page.hasMath), cssVars(layout, styles));
+	await printer.load(buildNoteSection(page), styles.collect(page.hasMath), cssVars(layout, styles));
 	let pdf = await printer.print(layout.print);
 
 	pdf = await postProcess(pdf, page.title, true, (info) => ({
@@ -222,7 +223,7 @@ async function printCombined(
 	options: { title: string; subtitle: string; coverAndToc: boolean },
 ): Promise<void> {
 	const html = buildCombinedDocument(notes, options);
-	await printer.load(html, await styles.collect(notes.some((n) => n.hasMath)), cssVars(layout, styles));
+	await printer.load(html, styles.collect(notes.some((n) => n.hasMath)), cssVars(layout, styles));
 	let pdf = await printer.print(layout.print);
 
 	if (options.coverAndToc) {

@@ -1,7 +1,5 @@
-import type { AssetInliner } from './assets';
-
 export interface CollectedStyles {
-	/** `@font-face` rules with fonts inlined as data URLs. */
+	/** `@font-face` rules with absolute font URLs. */
 	fonts: string;
 	css: string;
 }
@@ -19,18 +17,15 @@ const OKLCH_MIX = /color-mix\(\s*in oklch/g;
 const FONT_VARIABLES = ['--font-text-override', '--font-print-override', '--font-monospace-override'];
 
 /**
- * Copies the app's stylesheets so the PDF looks like Reading view. Fonts are
- * inlined because the print view cannot load Obsidian's `app://` resources.
+ * Copies the app's stylesheets so the PDF looks like Reading view. Font URLs
+ * are made absolute so the print view can load Obsidian's bundled fonts.
  */
 export class StyleCollector {
-	constructor(
-		private readonly inliner: AssetInliner,
-		private readonly useTheme: boolean,
-	) {}
+	constructor(private readonly useTheme: boolean) {}
 
-	async collect(includeMath: boolean): Promise<CollectedStyles> {
+	collect(includeMath: boolean): CollectedStyles {
 		const css: string[] = [];
-		const fontRules: Promise<string>[] = [];
+		const fonts: string[] = [];
 
 		for (const sheet of Array.from(activeDocument.styleSheets)) {
 			if (!this.isWanted(sheet, includeMath)) continue;
@@ -42,12 +37,12 @@ export class StyleCollector {
 			}
 			const base = sheet.href ?? activeDocument.baseURI;
 			for (const rule of Array.from(rules)) {
-				if (rule instanceof CSSFontFaceRule) fontRules.push(this.inlineFontUrls(rule.cssText, base));
+				if (rule instanceof CSSFontFaceRule) fonts.push(absoluteUrls(rule.cssText, base));
 				else css.push(rule.cssText);
 			}
 		}
 		return {
-			fonts: (await Promise.all(fontRules)).join('\n'),
+			fonts: fonts.join('\n'),
 			css: css.join('\n').replace(OKLCH_MIX, 'color-mix(in srgb'),
 		};
 	}
@@ -70,25 +65,16 @@ export class StyleCollector {
 		if (this.useTheme) return true;
 		return !!sheet.href && /\/app\.css(\?|$)/.test(sheet.href);
 	}
+}
 
-	private async inlineFontUrls(cssText: string, base: string): Promise<string> {
-		const replacements = new Map<string, string>();
-		for (const match of cssText.matchAll(URL_PATTERN)) {
-			const raw = match[2];
-			if (!raw || raw.startsWith('data:') || replacements.has(raw)) continue;
-			let absolute: string;
-			try {
-				absolute = new URL(raw, base).href;
-			} catch {
-				continue;
-			}
-			if (/^https?:/i.test(absolute)) continue;
-			const dataUrl = await this.inliner.toDataUrl(absolute);
-			if (dataUrl) replacements.set(raw, dataUrl);
+/** Resolves relative `url()` references against the stylesheet's location. */
+function absoluteUrls(cssText: string, base: string): string {
+	return cssText.replace(URL_PATTERN, (whole, _quote: string, raw: string) => {
+		if (raw.startsWith('data:')) return whole;
+		try {
+			return `url("${new URL(raw, base).href}")`;
+		} catch {
+			return whole;
 		}
-		return cssText.replace(URL_PATTERN, (whole, _quote: string, raw: string) => {
-			const dataUrl = replacements.get(raw);
-			return dataUrl ? `url("${dataUrl}")` : whole;
-		});
-	}
+	});
 }

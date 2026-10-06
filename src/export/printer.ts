@@ -80,8 +80,11 @@ export class PdfPrinter {
 			document.getElementById('bpe-root').innerHTML = ${JSON.stringify(html)};
 			const images = Array.from(document.images).filter((img) => !img.complete);
 			const loaded = Promise.all(images.map((img) => new Promise((r) => { img.onload = img.onerror = r; })));
+			// Fonts load lazily, so fonts.ready can resolve before math fonts are fetched.
+			// Load every declared face up front; they are local files.
+			const fonts = Promise.all(Array.from(document.fonts, (face) => face.load().catch(() => null)));
 			await Promise.race([
-				Promise.all([loaded, document.fonts.ready]),
+				Promise.all([loaded, fonts]).then(() => document.fonts.ready),
 				new Promise((r) => setTimeout(r, ${ASSET_TIMEOUT_MS})),
 			]);
 			return true;

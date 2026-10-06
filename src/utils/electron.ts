@@ -1,3 +1,5 @@
+import { desktopRequire } from './node';
+
 /**
  * Typed access to the parts of Electron the plugin needs. Obsidian exposes
  * `@electron/remote` as `require('electron').remote` on desktop.
@@ -36,8 +38,7 @@ interface WebContents {
 }
 
 function getRemote(): ElectronRemote {
-	// eslint-disable-next-line @typescript-eslint/no-require-imports -- electron is provided by Obsidian at runtime
-	const electron = require('electron') as { remote?: ElectronRemote };
+	const electron = desktopRequire<{ remote?: ElectronRemote }>('electron');
 	if (!electron.remote) throw new Error('Electron remote is not available.');
 	return electron.remote;
 }

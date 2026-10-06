@@ -81,7 +81,7 @@ function assignHeadingIds(el: HTMLElement, note: ExportNote, app: App): NoteHead
 		heading.id = id;
 		// An empty self-link makes Chromium emit a named destination for the heading,
 		// which the PDF bookmarks point to.
-		heading.prepend(createAnchor(el, id));
+		heading.prepend(createAnchor(id));
 		return { id, text, level: Number(heading.tagName.slice(1)) };
 	});
 }
@@ -90,12 +90,8 @@ function findHeading(headings: HeadingCache[], text: string, used: Set<number>):
 	return headings.findIndex((h, i) => !used.has(i) && h.heading.trim() === text);
 }
 
-export function createAnchor(el: HTMLElement, id: string): HTMLAnchorElement {
-	const anchor = el.doc.createElement('a');
-	anchor.addClass('bpe-anchor');
-	anchor.setAttribute('href', `#${id}`);
-	anchor.setAttribute('aria-hidden', 'true');
-	return anchor;
+export function createAnchor(id: string): HTMLAnchorElement {
+	return createEl('a', { cls: 'bpe-anchor', attr: { href: `#${id}`, 'aria-hidden': 'true' } });
 }
 
 function resolveInternalLink(link: HTMLAnchorElement, note: ExportNote, ctx: LinkContext): string | null {
@@ -129,8 +125,7 @@ function subpathAnchorId(target: ExportNote, subpath: string, app: App): string 
 
 /** Replaces a link with a span that keeps its content but no longer links anywhere. */
 function unwrapLink(link: HTMLAnchorElement, cls: string): void {
-	const span = link.doc.createElement('span');
-	span.addClass(cls);
+	const span = createSpan({ cls });
 	while (link.firstChild) span.appendChild(link.firstChild);
 	link.replaceWith(span);
 }
