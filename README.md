@@ -17,6 +17,42 @@ Notes are rendered with Obsidian's own renderer, so the PDFs match Reading view:
 - **PDF bookmarks**: the sidebar outline in PDF viewers lists notes, grouped by folder, with each note's headings nested inside.
 - **Page numbers** in the footer, and A3, A4, A5, Letter or Legal pages in portrait or landscape.
 
+## Installation
+
+Batch PDF Export works on desktop only (Windows, macOS and Linux).
+
+### From Community plugins
+
+Once the plugin is listed in the Obsidian community catalog:
+
+1. Open **Settings → Community plugins** and turn off **Restricted mode** if it's on.
+2. Select **Browse**, search for **Batch PDF Export**, then select **Install**.
+3. Select **Enable**.
+
+### With BRAT (beta releases)
+
+1. Install and enable the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from **Community plugins**.
+2. Open **Settings → BRAT**, select **Add beta plugin**, and enter `Dryd33n/obsidian-batch-pdf-export`.
+3. Enable **Batch PDF Export** in **Settings → Community plugins**.
+
+### Manually
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/Dryd33n/obsidian-batch-pdf-export/releases/latest).
+2. In your vault, create the folder `.obsidian/plugins/batch-pdf-export/` and copy the three files into it. The `.obsidian` folder is hidden by default, so you may need to show hidden files.
+3. Restart Obsidian, or reload plugins in **Settings → Community plugins**.
+4. Enable **Batch PDF Export** in **Settings → Community plugins**.
+
+### From source
+
+```bash
+git clone https://github.com/Dryd33n/obsidian-batch-pdf-export.git
+cd obsidian-batch-pdf-export
+npm install
+npm run build
+```
+
+Then copy `main.js`, `manifest.json` and `styles.css` into `<Vault>/.obsidian/plugins/batch-pdf-export/` and enable the plugin as described above.
+
 ## Usage
 
 1. Right-click a folder in the file explorer and select **Export folder to PDF**, or run **Batch PDF Export: Export folder to PDF…** from the command palette and pick a folder.
