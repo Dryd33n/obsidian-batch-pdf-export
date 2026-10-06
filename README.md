@@ -1,92 +1,73 @@
-# Obsidian Sample Plugin
+# Batch PDF Export
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Export a whole folder of Obsidian notes to PDF, either as **one PDF per note** or as **one combined PDF**.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+Notes are rendered with Obsidian's own renderer, so the PDFs match Reading view: math, Mermaid diagrams, callouts, code highlighting, tables, images and embedded notes all come out as they look in the app. The output uses a clean light print style, whatever theme you use.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+## Features
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Two export modes**
+  - **One PDF per note**: you name a new folder in the save dialog. Each note becomes its own PDF inside it, and subfolders are recreated.
+  - **One combined PDF**: every note starts on a new page, after a title page and a linked table of contents with page numbers.
+- **Note header**: each note starts with its title and a date (a date property, date modified, date created or the export date).
+- **Working links**
+  - In a combined PDF, links to other exported notes, headings (`[[Note#Heading]]`), blocks (`[[Note#^id]]`) and footnotes jump to the right page.
+  - With one PDF per note, links to other exported notes open the matching PDF through a relative link, so the folder can be moved or shared.
+  - Links to notes that weren't exported become plain text.
+- **PDF bookmarks**: the sidebar outline in PDF viewers lists notes, grouped by folder, with each note's headings nested inside.
+- **Page numbers** in the footer, and A3, A4, A5, Letter or Legal pages in portrait or landscape.
 
-## First time developing plugins?
+## Usage
 
-Quick starting guide for new plugin devs:
+1. Right-click a folder in the file explorer and select **Export folder to PDF**, or run **Batch PDF Export: Export folder to PDF…** from the command palette and pick a folder.
+2. Choose **One PDF per note** or **One combined PDF**, and whether to include subfolders.
+3. Select **Export** and choose where to save.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+A notice shows progress and has a **Cancel** button. When the export finishes, select **Show in folder** to open the result.
 
-## Releasing new releases
+### Mermaid diagrams
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+Recent versions of Obsidian ask before showing Mermaid diagrams in a vault. If your vault hasn't allowed them yet, the export asks once. Allowing works exactly like selecting **Allow** on a diagram in Obsidian and applies to the whole vault. If you decline, the diagram source is printed instead.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Settings
 
-## Adding your plugin to the community plugin list
+| Setting | Default |
+| --- | --- |
+| Default export mode | One PDF per note |
+| Include subfolders | On |
+| Page size, landscape | A4, portrait |
+| Margins | 15 mm |
+| Page numbers | On |
+| Title page and table of contents (combined PDF) | On |
+| Date shown | `date` property, else date modified |
+| Date format | `YYYY-MM-DD` |
+| Use community theme and snippets | Off |
+| Render timeout | 10 seconds per note |
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## Notes and limitations
 
-## How to use
+- **Desktop only.** PDFs are printed by Obsidian's built-in Chromium engine, which isn't available on mobile.
+- **Files outside the vault.** PDFs are written only to the location you choose in the save dialog. Nothing else is read or written outside the vault.
+- **No network requests of its own.** Notes that embed web images or iframes load them the same way Reading view does.
+- **Content that can't be printed**, such as embedded PDFs, audio, video and canvases, is replaced with a labelled placeholder.
+- **Links between separate PDFs** are relative file links. Desktop viewers such as Adobe Acrobat, Foxit, SumatraPDF and Okular follow them. Browser PDF viewers usually don't open other local files.
+- **Content from other plugins** (for example Dataview) is included once it finishes rendering. Increase **Render timeout** if a plugin needs longer.
+- Folder order is alphabetical with natural number sorting ("2" before "10"). Notes in a folder come before its subfolders.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Development
 
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+npm install
+npm run dev     # watch build
+npm run build   # type-check and production build
+npm run lint
 ```
 
-If you have multiple URLs, you can also do:
+To test, copy `main.js`, `manifest.json` and `styles.css` into `<Vault>/.obsidian/plugins/batch-pdf-export/`, then reload Obsidian and enable the plugin.
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
+### How it works
 
-## API Documentation
-
-See https://docs.obsidian.md
+1. Each note is rendered off-screen with `MarkdownRenderer`. The plugin waits for Mermaid, MathJax and embeds to finish, then cleans up the HTML: links are rewritten, vault images and fonts are inlined, and collapsed callouts are expanded.
+2. The HTML is printed with `printToPDF` in a hidden `<webview>`.
+3. For combined PDFs, a first print pass finds the page of each note (using Obsidian's bundled pdf.js) so the table of contents can show page numbers.
+4. Bookmarks, the document title and relative links between PDFs are added with a small PDF incremental update, without any extra libraries.

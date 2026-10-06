@@ -1,8 +1,35 @@
-/*
+/* Off-screen container where notes are rendered before printing. */
+.batch-pdf-export-staging {
+	position: fixed;
+	top: 0;
+	left: -100000px;
+	width: var(--bpe-staging-width, 680px);
+	pointer-events: none;
+	contain: layout style;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Hidden print view. It has to stay in the layout for Chromium to render it. */
+.batch-pdf-export-webview {
+	position: fixed;
+	top: 0;
+	left: -100000px;
+	width: 800px;
+	height: 600px;
+	pointer-events: none;
+}
 
-If your plugin does not need CSS, delete this file.
+.batch-pdf-export-progress {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+}
 
-*/
+.batch-pdf-export-progress button,
+.batch-pdf-export-reveal {
+	flex-shrink: 0;
+	margin-top: var(--size-4-2);
+}
+
+.batch-pdf-export-progress button {
+	margin-top: 0;
+}

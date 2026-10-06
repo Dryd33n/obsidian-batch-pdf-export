@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-batch-pdf-export",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Obsidian plugin that exports a folder of notes to PDF, one per note or combined.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
