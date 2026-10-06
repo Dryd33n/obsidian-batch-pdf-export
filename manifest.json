@@ -1,7 +1,7 @@
 {
 	"id": "batch-pdf-export",
 	"name": "Batch PDF Export",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.6.6",
 	"description": "Export a whole folder of notes to PDF, either one PDF per note or one combined PDF with a table of contents, bookmarks and working links.",
 	"author": "Dryd33n",
