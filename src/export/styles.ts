@@ -1,3 +1,5 @@
+import type { App } from 'obsidian';
+
 export interface CollectedStyles {
 	/** `@font-face` rules with absolute font URLs. */
 	fonts: string;
@@ -17,11 +19,32 @@ const OKLCH_MIX = /color-mix\(\s*in oklch/g;
 const FONT_VARIABLES = ['--font-text-override', '--font-print-override', '--font-monospace-override'];
 
 /**
+ * Body variables and classes that describe the window rather than the
+ * content, as left out by Obsidian's own PDF export. The print stylesheet
+ * sets its own text size.
+ */
+const SKIPPED_VARIABLES = new Set(['--zoom-factor', '--keyboard-height', '--font-text-size']);
+const SKIPPED_CLASSES = new Set(['theme-dark', 'theme-light', 'is-frameless', 'is-focused', 'is-fullscreen']);
+
+/** Obsidian's theme and CSS snippet style elements (not public API). */
+interface CustomCss {
+	styleEl?: HTMLStyleElement;
+	extraStyleEls?: HTMLStyleElement[];
+}
+
+/**
  * Copies the app's stylesheets so the PDF looks like Reading view. Font URLs
  * are made absolute so the print view can load Obsidian's bundled fonts.
+ *
+ * Plugin styles are always included, since plugins style the content they
+ * render. The community theme and CSS snippets are only included when
+ * `useTheme` is on.
  */
 export class StyleCollector {
-	constructor(private readonly useTheme: boolean) {}
+	constructor(
+		private readonly app: App,
+		private readonly useTheme: boolean,
+	) {}
 
 	collect(includeMath: boolean): CollectedStyles {
 		const css: string[] = [];
@@ -47,23 +70,41 @@ export class StyleCollector {
 		};
 	}
 
-	/** The user's font choices, to apply to the print document. */
-	fontVariables(): Record<string, string> {
-		const style = getComputedStyle(activeDocument.body);
+	/**
+	 * Variables set on the main window's body, such as the user's font
+	 * choices and values set by plugins, to apply to the print document.
+	 */
+	bodyVariables(): Record<string, string> {
+		const body = activeDocument.body;
 		const vars: Record<string, string> = {};
+		for (const name of Array.from(body.style)) {
+			if (name.startsWith('--') && !SKIPPED_VARIABLES.has(name)) vars[name] = body.style.getPropertyValue(name);
+		}
+		const computed = getComputedStyle(body);
 		for (const name of FONT_VARIABLES) {
-			const value = style.getPropertyValue(name).trim();
+			const value = computed.getPropertyValue(name).trim();
 			if (value) vars[name] = value;
 		}
 		return vars;
 	}
 
+	/** Classes on the main window's body. Plugins and themes scope their styles with them. */
+	bodyClasses(): string[] {
+		return Array.from(activeDocument.body.classList).filter((name) => !SKIPPED_CLASSES.has(name));
+	}
+
 	private isWanted(sheet: CSSStyleSheet, includeMath: boolean): boolean {
 		const owner = sheet.ownerNode;
-		const isMath = owner instanceof HTMLStyleElement && owner.id.startsWith('MJX-');
-		if (isMath) return includeMath;
-		if (this.useTheme) return true;
-		return !!sheet.href && /\/app\.css(\?|$)/.test(sheet.href);
+		if (!(owner instanceof HTMLStyleElement)) return true;
+		if (owner.id.startsWith('MJX-')) return includeMath;
+		// CodeMirror's editor styles, which Obsidian's own PDF export also leaves out.
+		if (owner.textContent?.includes('ͼ1')) return false;
+		return this.useTheme || !this.isThemeOrSnippet(owner);
+	}
+
+	private isThemeOrSnippet(el: HTMLStyleElement): boolean {
+		const customCss = (this.app as unknown as { customCss?: CustomCss }).customCss;
+		return el === customCss?.styleEl || (customCss?.extraStyleEls?.includes(el) ?? false);
 	}
 }
 

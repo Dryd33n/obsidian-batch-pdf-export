@@ -40,7 +40,9 @@ export class NoteRenderer {
 		widthPx: number,
 		private readonly timeoutMs: number,
 	) {
-		this.stagingEl = activeDocument.body.createDiv({ cls: 'batch-pdf-export-staging' });
+		// `print` matches the container of Obsidian's own PDF export. Plugins
+		// such as Code Styler look for it to decorate code blocks for printing.
+		this.stagingEl = activeDocument.body.createDiv({ cls: ['batch-pdf-export-staging', 'print'] });
 		this.stagingEl.setCssProps({ '--bpe-staging-width': `${Math.round(widthPx)}px` });
 	}
 

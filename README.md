@@ -26,7 +26,7 @@
 
 ### 🖨️ Faithful rendering
 - Looks like **Reading view**: math, Mermaid, callouts, code, tables, images and embedded notes
-- Clean light print style, whatever your theme
+- Clean light print style, whatever your theme, with optional dark code blocks
 - Title and date at the top of every note
 - Every note starts on a new page
 
@@ -96,6 +96,8 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 | Title page and table of contents | ✅ On |
 | Date shown | `date` property, else date modified |
 | Date format | `YYYY-MM-DD` |
+| Inline code colors | Light |
+| Code block colors | Light |
 | Use community theme and snippets | ⬜ Off |
 | Render timeout | 10 s per note |
 
@@ -103,6 +105,7 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 
 - Embedded PDFs, audio, video and canvases print as placeholders.
 - Links between separate PDFs work in desktop viewers (Acrobat, Foxit, SumatraPDF), but not in most browsers.
+- Code block options read from the fence line by some plugins (Shiki titles and line numbers, Advanced Codeblock line numbers) are not printed, the same as in Obsidian's own PDF export. Code Styler is supported.
 - Mermaid diagrams need your vault's Mermaid permission. The export asks for it if it's missing.
 
 > [!NOTE]

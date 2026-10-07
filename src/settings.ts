@@ -2,6 +2,8 @@ import type { ExportMode } from './types';
 
 export type PageSize = 'A3' | 'A4' | 'A5' | 'Letter' | 'Legal';
 export type DateSource = 'frontmatter' | 'modified' | 'created' | 'export';
+/** `app` follows Obsidian's current light or dark mode. */
+export type CodeColors = 'app' | 'light' | 'dark';
 
 export interface BatchPdfExportSettings {
 	mode: ExportMode;
@@ -16,12 +18,17 @@ export interface BatchPdfExportSettings {
 	dateFormat: string;
 	includeCoverAndToc: boolean;
 	pageNumbers: boolean;
+	inlineCodeColors: CodeColors;
+	codeBlockColors: CodeColors;
 	useTheme: boolean;
 	/** Maximum time in seconds to wait for a note to finish rendering. */
 	renderTimeout: number;
 	/** Directory last chosen in the save dialog. */
 	lastExportDirectory: string;
 }
+
+/** Settings that can be changed for a single export in the export dialog. */
+export type StyleOptions = Pick<BatchPdfExportSettings, 'inlineCodeColors' | 'codeBlockColors' | 'useTheme'>;
 
 export const DEFAULT_SETTINGS: BatchPdfExportSettings = {
 	mode: 'separate',
@@ -34,6 +41,8 @@ export const DEFAULT_SETTINGS: BatchPdfExportSettings = {
 	dateFormat: 'YYYY-MM-DD',
 	includeCoverAndToc: true,
 	pageNumbers: true,
+	inlineCodeColors: 'light',
+	codeBlockColors: 'light',
 	useTheme: false,
 	renderTimeout: 10,
 	lastExportDirectory: '',

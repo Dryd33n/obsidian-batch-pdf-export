@@ -33,3 +33,15 @@
 .batch-pdf-export-progress button {
 	margin-top: 0;
 }
+
+/* Folded advanced options in the export dialog. */
+.batch-pdf-export-advanced {
+	margin-top: var(--size-4-2);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.batch-pdf-export-advanced > summary {
+	padding: var(--size-4-3) 0;
+	color: var(--text-muted);
+	cursor: var(--cursor);
+}

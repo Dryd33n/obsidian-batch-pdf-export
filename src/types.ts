@@ -1,4 +1,5 @@
 import type { TFile } from 'obsidian';
+import type { StyleOptions } from './settings';
 
 export type ExportMode = 'separate' | 'single';
 
@@ -11,6 +12,8 @@ export interface ExportOptions {
 	 * user is asked with the system save dialog.
 	 */
 	outputPath?: string;
+	/** Overrides the style settings for this export only. */
+	style?: Partial<StyleOptions>;
 }
 
 export interface ExportResult {

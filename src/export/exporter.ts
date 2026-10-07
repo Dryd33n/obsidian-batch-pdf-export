@@ -7,6 +7,7 @@ import { pauseBackgroundThrottling } from '../utils/electron';
 import { nodePath } from '../utils/node';
 import { relativeFilePath, fromFileUrl } from '../utils/paths';
 import { AssetInliner } from './assets';
+import { darkCodeFor } from './code-colors';
 import { collectNotes, planOutputPaths } from './collect';
 import { buildCombinedDocument, buildNoteSection } from './document';
 import { noteAnchorId, processLinks, type LinkContext } from './links';
@@ -16,7 +17,7 @@ import { chooseOutputPath, pathState, writePdf } from './output';
 import { inspectPdf } from './pdf-inspect';
 import { updatePdf, type OutlineNode, type RelativeLink } from './pdf-update';
 import { FOOTER_TEMPLATE } from './print-styles';
-import { PdfPrinter, type PrintOptions } from './printer';
+import { PdfPrinter, type BodyState, type PrintOptions } from './printer';
 import { NoteRenderer, allowMermaid, hasBlockedMermaid } from './render';
 import { StyleCollector } from './styles';
 
@@ -41,6 +42,7 @@ export async function runExport(
 	callbacks: ExportCallbacks,
 ): Promise<ExportResult> {
 	const { app, settings } = plugin;
+	const style = { ...settings, ...options.style };
 	const result: ExportResult = { outputs: [], failures: [], cancelled: false };
 	const folderName = folder.isRoot() ? app.vault.getName() : folder.name;
 
@@ -65,7 +67,7 @@ export async function runExport(
 
 	const layout = pageLayout(settings);
 	const inliner = new AssetInliner(app);
-	const styles = new StyleCollector(settings.useTheme);
+	const styles = new StyleCollector(app, style.useTheme);
 	const linkContext: LinkContext = {
 		app,
 		mode: options.mode,
@@ -78,7 +80,7 @@ export async function runExport(
 	let mermaidAllowed: boolean | null = null;
 
 	try {
-		printer = await PdfPrinter.create();
+		printer = await PdfPrinter.create(darkCodeFor(style));
 		const rendered: RenderedNote[] = [];
 
 		for (const note of notes) {
@@ -201,7 +203,7 @@ async function printSeparate(
 	page: RenderedNote,
 ): Promise<void> {
 	const target = page.note.outputPath!;
-	await printer.load(buildNoteSection(page), styles.collect(page.hasMath), cssVars(layout, styles));
+	await printer.load(buildNoteSection(page), styles.collect(page.hasMath), bodyState(layout, styles));
 	let pdf = await printer.print(layout.print);
 
 	pdf = await postProcess(pdf, page.title, true, (info) => ({
@@ -223,7 +225,7 @@ async function printCombined(
 	options: { title: string; subtitle: string; coverAndToc: boolean },
 ): Promise<void> {
 	const html = buildCombinedDocument(notes, options);
-	await printer.load(html, styles.collect(notes.some((n) => n.hasMath)), cssVars(layout, styles));
+	await printer.load(html, styles.collect(notes.some((n) => n.hasMath)), bodyState(layout, styles));
 	let pdf = await printer.print(layout.print);
 
 	if (options.coverAndToc) {
@@ -262,8 +264,11 @@ async function postProcess(
 	}
 }
 
-function cssVars(layout: PageLayout, styles: StyleCollector): Record<string, string> {
-	return { ...styles.fontVariables(), '--bpe-page-height': `${Math.floor(layout.contentHeightPx)}px` };
+function bodyState(layout: PageLayout, styles: StyleCollector): BodyState {
+	return {
+		classes: styles.bodyClasses(),
+		vars: { ...styles.bodyVariables(), '--bpe-page-height': `${Math.floor(layout.contentHeightPx)}px` },
+	};
 }
 
 function errorMessage(error: unknown): string {
