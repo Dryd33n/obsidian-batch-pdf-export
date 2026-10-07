@@ -14,11 +14,25 @@ export interface ExportOptions {
 	outputPath?: string;
 	/** Overrides the style settings for this export only. */
 	style?: Partial<StyleOptions>;
+	/** Custom note order and notes left out. Alphabetical with every note when omitted. */
+	selection?: NoteSelection;
+}
+
+/**
+ * Which notes to export and in what order, as vault paths. `order` ranks
+ * notes and folders among their siblings; anything not listed follows in the
+ * default order. `removed` notes and folders are left out.
+ */
+export interface NoteSelection {
+	order: string[];
+	removed: string[];
 }
 
 export interface ExportResult {
 	/** Absolute paths of the PDFs that were written. */
 	outputs: string[];
+	/** The PDF file (combined) or folder (one per note) that was saved to. */
+	outputRoot?: string;
 	/** Notes that could not be exported, with the reason. */
 	failures: { path: string; error: string }[];
 	cancelled: boolean;

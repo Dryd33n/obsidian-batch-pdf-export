@@ -25,7 +25,11 @@ interface ElectronRemote {
 			options: SaveDialogOptions,
 		): Promise<{ canceled: boolean; filePath?: string }>;
 	};
-	shell: { showItemInFolder(fullPath: string): void };
+	shell: {
+		showItemInFolder(fullPath: string): void;
+		/** Resolves to an error message, or an empty string on success. */
+		openPath(path: string): Promise<string>;
+	};
 	app: { getPath(name: 'documents' | 'home'): string };
 	getCurrentWindow(): unknown;
 	getCurrentWebContents(): WebContents;
@@ -52,6 +56,12 @@ export async function showSaveDialog(options: SaveDialogOptions): Promise<string
 
 export function showItemInFolder(fullPath: string): void {
 	getRemote().shell.showItemInFolder(fullPath);
+}
+
+/** Opens a file in its default app, or a folder in the file manager. Resolves to an error message, or null. */
+export async function openPath(fullPath: string): Promise<string | null> {
+	const error = await getRemote().shell.openPath(fullPath);
+	return error || null;
 }
 
 /**

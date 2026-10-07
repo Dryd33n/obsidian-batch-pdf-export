@@ -1,12 +1,13 @@
 import { Notice, TFolder } from 'obsidian';
 import { ExportError } from '../export/exporter';
+import { pathState } from '../export/output';
 import type BatchPdfExportPlugin from '../main';
 import type { ExportOptions } from '../types';
 import { confirmModal } from '../ui/confirm-modal';
 import { ExportModal } from '../ui/export-modal';
 import { FolderSuggestModal } from '../ui/folder-suggest-modal';
 import { ProgressNotice } from '../ui/progress-notice';
-import { showItemInFolder } from '../utils/electron';
+import { openPath, showItemInFolder } from '../utils/electron';
 
 export function registerExportCommands(plugin: BatchPdfExportPlugin): void {
 	plugin.addCommand({
@@ -62,14 +63,18 @@ async function startExport(plugin: BatchPdfExportPlugin, folder: TFolder, option
 		if (result.failures.length > 0) {
 			message += ` ${result.failures.length} ${result.failures.length === 1 ? 'note' : 'notes'} could not be exported; see the developer console for details.`;
 		}
-		const first = result.outputs[0];
 		const fragment = createFragment((f) => {
 			f.createDiv({ text: message });
-			if (first) {
-				f.createEl('button', { text: 'Show in folder', cls: 'batch-pdf-export-reveal' }).addEventListener(
-					'click',
-					() => showItemInFolder(first),
-				);
+			const root = result.outputRoot;
+			if (!root || result.outputs.length === 0) return;
+			const buttons = f.createDiv({ cls: 'batch-pdf-export-result-buttons' });
+			const addButton = (text: string, onClick: () => void) =>
+				buttons.createEl('button', { text }).addEventListener('click', onClick);
+			if (options.mode === 'single') {
+				addButton('Open PDF', () => void openOutput(root));
+				addButton('Show in folder', () => showItemInFolder(root));
+			} else {
+				addButton('Open folder', () => void openOutput(root));
 			}
 		});
 		new Notice(fragment, 10000);
@@ -78,5 +83,20 @@ async function startExport(plugin: BatchPdfExportPlugin, folder: TFolder, option
 		console.error('Batch PDF Export: export failed', error);
 		const reason = error instanceof ExportError ? error.message : 'Export failed. See the developer console for details.';
 		new Notice(reason);
+	}
+}
+
+async function openOutput(fullPath: string): Promise<void> {
+	try {
+		// On Windows, opening a missing path shows a system error box and never resolves.
+		if ((await pathState(fullPath)) === 'missing') {
+			new Notice(`“${fullPath}” no longer exists.`);
+			return;
+		}
+		const error = await openPath(fullPath);
+		if (error) new Notice(`Could not open “${fullPath}”: ${error}`);
+	} catch (error) {
+		console.error('Batch PDF Export: could not open output', error);
+		new Notice(`Could not open “${fullPath}”.`);
 	}
 }
