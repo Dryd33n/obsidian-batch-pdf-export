@@ -1,28 +1,31 @@
-import { TFile, TFolder } from 'obsidian';
-import type { ExportNote } from '../types';
+import { TFolder } from 'obsidian';
+import type { ExportNote, NoteSelection } from '../types';
 import { nodePath } from '../utils/node';
-import { naturalCompare, sanitizeFileName, uniqueName } from '../utils/paths';
+import { sanitizeFileName, uniqueName } from '../utils/paths';
+import { EMPTY_SELECTION, isNote, orderRank, orderedChildren } from './note-order';
 
 /**
- * Lists the markdown notes in a folder in export order: each folder's notes
- * alphabetically (natural sort), followed by its subfolders, also sorted.
+ * Lists the markdown notes in a folder in export order. By default each
+ * folder's notes come first, then its subfolders, both sorted by name; a
+ * selection can reorder them within their folder and leave some out.
  */
-export function collectNotes(folder: TFolder, includeSubfolders: boolean): ExportNote[] {
+export function collectNotes(
+	folder: TFolder,
+	includeSubfolders: boolean,
+	selection: NoteSelection = EMPTY_SELECTION,
+): ExportNote[] {
 	const notes: ExportNote[] = [];
+	const rank = orderRank(selection.order);
+	const removed = new Set(selection.removed);
 
 	const walk = (current: TFolder, relativeFolder: string) => {
-		const files = current.children
-			.filter((child): child is TFile => child instanceof TFile && child.extension === 'md')
-			.sort((a, b) => naturalCompare(a.basename, b.basename));
-		for (const file of files) {
-			notes.push({ index: notes.length, file, relativeFolder });
-		}
-		if (!includeSubfolders) return;
-		const subfolders = current.children
-			.filter((child): child is TFolder => child instanceof TFolder)
-			.sort((a, b) => naturalCompare(a.name, b.name));
-		for (const sub of subfolders) {
-			walk(sub, relativeFolder ? `${relativeFolder}/${sub.name}` : sub.name);
+		for (const item of orderedChildren(current, includeSubfolders, rank)) {
+			if (removed.has(item.path)) continue;
+			if (isNote(item)) {
+				notes.push({ index: notes.length, file: item, relativeFolder });
+			} else if (item instanceof TFolder) {
+				walk(item, relativeFolder ? `${relativeFolder}/${item.name}` : item.name);
+			}
 		}
 	};
 

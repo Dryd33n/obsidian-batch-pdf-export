@@ -1,9 +1,11 @@
-import type { ExportMode } from './types';
+import type { ExportMode, NoteSelection } from './types';
 
 export type PageSize = 'A3' | 'A4' | 'A5' | 'Letter' | 'Legal';
 export type DateSource = 'frontmatter' | 'modified' | 'created' | 'export';
 /** `app` follows Obsidian's current light or dark mode. */
 export type CodeColors = 'app' | 'light' | 'dark';
+
+export const CODE_COLOR_OPTIONS: Record<CodeColors, string> = { light: 'Light', dark: 'Dark', app: 'Match app' };
 
 export interface BatchPdfExportSettings {
 	mode: ExportMode;
@@ -25,6 +27,8 @@ export interface BatchPdfExportSettings {
 	renderTimeout: number;
 	/** Directory last chosen in the save dialog. */
 	lastExportDirectory: string;
+	/** Note order and notes left out, saved for next time, by folder path. */
+	savedSelections: Record<string, NoteSelection>;
 }
 
 /** Settings that can be changed for a single export in the export dialog. */
@@ -46,6 +50,7 @@ export const DEFAULT_SETTINGS: BatchPdfExportSettings = {
 	useTheme: false,
 	renderTimeout: 10,
 	lastExportDirectory: '',
+	savedSelections: {},
 };
 
 /** Page dimensions in millimetres, portrait. */

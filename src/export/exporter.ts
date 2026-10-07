@@ -46,7 +46,7 @@ export async function runExport(
 	const result: ExportResult = { outputs: [], failures: [], cancelled: false };
 	const folderName = folder.isRoot() ? app.vault.getName() : folder.name;
 
-	const notes = collectNotes(folder, options.includeSubfolders);
+	const notes = collectNotes(folder, options.includeSubfolders, options.selection);
 	if (notes.length === 0) throw new ExportError(`There are no notes in “${folderName}” to export.`);
 
 	if (
@@ -64,6 +64,7 @@ export async function runExport(
 	const outputPath = options.outputPath ?? (await askForOutput(plugin, options, folderName, callbacks));
 	if (!outputPath) return { ...result, cancelled: true };
 	if (options.mode === 'separate') planOutputPaths(notes, outputPath);
+	result.outputRoot = outputPath;
 
 	const layout = pageLayout(settings);
 	const inliner = new AssetInliner(app);
@@ -81,6 +82,8 @@ export async function runExport(
 
 	try {
 		printer = await PdfPrinter.create(darkCodeFor(style));
+		// Obsidian's body classes and variables don't change during an export, so read them once.
+		const body = bodyState(layout, styles);
 		const rendered: RenderedNote[] = [];
 
 		for (const note of notes) {
@@ -111,7 +114,7 @@ export async function runExport(
 					hasMath: el.querySelector('mjx-container') !== null,
 				};
 				if (options.mode === 'separate') {
-					await printSeparate(printer, styles, layout, page);
+					await printSeparate(printer, styles, layout, body, page);
 					result.outputs.push(note.outputPath!);
 				} else {
 					rendered.push(page);
@@ -127,7 +130,7 @@ export async function runExport(
 		if (options.mode === 'single' && !result.cancelled && rendered.length > 0) {
 			callbacks.onProgress(`Creating PDF from ${rendered.length} notes…`);
 			const subtitle = `${rendered.length} ${rendered.length === 1 ? 'note' : 'notes'} · Exported ${formatDate(exportTime, settings.dateFormat)}`;
-			await printCombined(printer, styles, layout, rendered, outputPath, {
+			await printCombined(printer, styles, layout, body, rendered, outputPath, {
 				title: folderName,
 				subtitle,
 				coverAndToc: settings.includeCoverAndToc,
@@ -200,10 +203,11 @@ async function printSeparate(
 	printer: PdfPrinter,
 	styles: StyleCollector,
 	layout: PageLayout,
+	body: BodyState,
 	page: RenderedNote,
 ): Promise<void> {
 	const target = page.note.outputPath!;
-	await printer.load(buildNoteSection(page), styles.collect(page.hasMath), bodyState(layout, styles));
+	await printer.load(buildNoteSection(page), styles.collect(page.hasMath), body);
 	let pdf = await printer.print(layout.print);
 
 	pdf = await postProcess(pdf, page.title, true, (info) => ({
@@ -220,12 +224,13 @@ async function printCombined(
 	printer: PdfPrinter,
 	styles: StyleCollector,
 	layout: PageLayout,
+	body: BodyState,
 	notes: RenderedNote[],
 	target: string,
 	options: { title: string; subtitle: string; coverAndToc: boolean },
 ): Promise<void> {
 	const html = buildCombinedDocument(notes, options);
-	await printer.load(html, styles.collect(notes.some((n) => n.hasMath)), bodyState(layout, styles));
+	await printer.load(html, styles.collect(notes.some((n) => n.hasMath)), body);
 	let pdf = await printer.print(layout.print);
 
 	if (options.coverAndToc) {

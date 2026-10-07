@@ -37,6 +37,7 @@
 
 ### 📚 Combined PDF extras
 - Title page and **linked table of contents** with page numbers
+- **Choose the note order** by dragging, or sort by name or date
 - Links between notes, headings and blocks **work inside the PDF**
 - PDF bookmarks grouped by folder
 - Page numbers, page size and orientation settings
@@ -45,7 +46,7 @@
 </tr>
 </table>
 
-Exports show a progress notice with a **Cancel** button, so long batches never lock you in.
+**Leave out** any notes or subfolders you don't need, in either mode. Exports show a progress notice with a **Cancel** button, so long batches never lock you in, and finish with a button to open the PDF or folder.
 
 ## 📦 Installation
 
@@ -81,11 +82,23 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 
 1. Right-click a folder and select **Export folder to PDF**, or run **Export folder to PDF…** from the command palette (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>).
 2. Pick **One PDF per note** or **One combined PDF**.
-3. Optionally, open **Advanced** to change code colors or use your theme for this export. Select **Save as default** to keep the choices for next time.
-4. Select **Export** and choose where to save.
+3. Optionally, select **Reorder and remove…** (combined) or **Remove notes…** (one per note) to change the note order or leave notes out. See [Note order](#-note-order).
+4. Optionally, open **Advanced** to change code colors or use your theme for this export. Select **Save as default** to keep the choices for next time.
+5. Select **Export** and choose where to save. When it finishes, select **Open PDF** or **Open folder** in the notice.
 
 > [!TIP]
 > Want a single shareable document? Choose **One combined PDF**. You get a title page, a clickable table of contents, and bookmarks for every folder.
+
+### 🔀 Note order
+
+Notes are exported in alphabetical order, each folder's notes before its subfolders. To change that, select **Reorder and remove…** in the export dialog:
+
+- **Drag** a note or folder, or use the **↑ ↓** buttons, to move it within its folder. Notes stay in their own folder, so the table of contents and bookmarks keep the folder structure.
+- **Sort by** name, date created or date modified, then adjust from there.
+- Select **✕** to leave a note or a whole folder out. Removed items are listed under **Removed**, where you can restore them.
+- Select **Done** to use the order for this export, or **Save for next time** to keep it for this folder. Saved orders follow notes when they are renamed or moved.
+
+New notes are added at the end of their folder. Select **Reset** in the export dialog to go back to alphabetical order and forget the saved order.
 
 ## ⚙️ Settings
 
