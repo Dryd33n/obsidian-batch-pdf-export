@@ -1,4 +1,5 @@
 import { pauseBackgroundThrottling } from '../utils/electron';
+import { darkCodeScript, type DarkCode } from './code-colors';
 import type { CollectedStyles } from './styles';
 import { PRINT_CSS } from './print-styles';
 
@@ -26,6 +27,12 @@ declare global {
 	}
 }
 
+/** Classes and CSS variables for the print document's body. */
+export interface BodyState {
+	classes: string[];
+	vars: Record<string, string>;
+}
+
 const SHELL = `<!doctype html><html><head><meta charset="utf-8">
 <style id="bpe-fonts"></style><style id="bpe-css"></style><style id="bpe-print"></style>
 </head><body class="theme-light bpe-export"><div class="print" id="bpe-root"></div></body></html>`;
@@ -38,11 +45,15 @@ const ASSET_TIMEOUT_MS = 15000;
  * whole export; styles are only re-sent when they change.
  */
 export class PdfPrinter {
-	private sent: { fonts?: string; css?: string } = {};
+	private sent: { fonts?: string; css?: string; bodyClass?: string } = {};
 
-	private constructor(private readonly webview: WebviewTag) {}
+	private constructor(
+		private readonly webview: WebviewTag,
+		private readonly darkCode: DarkCode,
+	) {}
 
-	static async create(): Promise<PdfPrinter> {
+	/** `darkCode` says which kinds of code are printed with the dark colour scheme. */
+	static async create(darkCode: DarkCode): Promise<PdfPrinter> {
 		const webview = activeDocument.body.createEl('webview', {
 			cls: 'batch-pdf-export-webview',
 			attr: { src: 'about:blank' },
@@ -58,11 +69,11 @@ export class PdfPrinter {
 			`document.open(); document.write(${JSON.stringify(SHELL)}); document.close();
 			document.getElementById('bpe-print').textContent = ${JSON.stringify(PRINT_CSS)}; true;`,
 		);
-		return new PdfPrinter(webview);
+		return new PdfPrinter(webview, darkCode);
 	}
 
 	/** Replaces the printed content and waits for fonts and images to load. */
-	async load(html: string, styles: CollectedStyles, cssVars: Record<string, string>): Promise<void> {
+	async load(html: string, styles: CollectedStyles, body: BodyState): Promise<void> {
 		const updates: string[] = [];
 		if (styles.fonts !== this.sent.fonts) {
 			updates.push(`document.getElementById('bpe-fonts').textContent = ${JSON.stringify(styles.fonts)};`);
@@ -70,7 +81,12 @@ export class PdfPrinter {
 		if (styles.css !== this.sent.css) {
 			updates.push(`document.getElementById('bpe-css').textContent = ${JSON.stringify(styles.css)};`);
 		}
-		const vars = Object.entries(cssVars)
+		// The page is always printed light; the other body classes are kept for plugin and theme styles.
+		const bodyClass = ['theme-light', 'bpe-export', ...body.classes].join(' ');
+		if (bodyClass !== this.sent.bodyClass) {
+			updates.push(`document.body.className = ${JSON.stringify(bodyClass)};`);
+		}
+		const vars = Object.entries(body.vars)
 			.map(([name, value]) => `document.body.style.setProperty(${JSON.stringify(name)}, ${JSON.stringify(value)});`)
 			.join('');
 
@@ -78,6 +94,7 @@ export class PdfPrinter {
 			${updates.join('\n')}
 			${vars}
 			document.getElementById('bpe-root').innerHTML = ${JSON.stringify(html)};
+			${darkCodeScript(this.darkCode, updates.length > 0)}
 			const images = Array.from(document.images).filter((img) => !img.complete);
 			const loaded = Promise.all(images.map((img) => new Promise((r) => { img.onload = img.onerror = r; })));
 			// Fonts load lazily, so fonts.ready can resolve before math fonts are fetched.
@@ -89,7 +106,7 @@ export class PdfPrinter {
 			]);
 			return true;
 		})()`);
-		this.sent = { fonts: styles.fonts, css: styles.css };
+		this.sent = { fonts: styles.fonts, css: styles.css, bodyClass };
 	}
 
 	/** Writes the table of contents page numbers into the loaded document. */

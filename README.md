@@ -27,6 +27,8 @@
 ### 🖨️ Faithful rendering
 - Looks like **Reading view**: math, Mermaid, callouts, code, tables, images and embedded notes
 - Clean light print style, whatever your theme
+- **Dark or light code**, set separately for inline code and code blocks
+- Keeps the styling of plugin content, including Code Styler code blocks
 - Title and date at the top of every note
 - Every note starts on a new page
 
@@ -79,12 +81,15 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 
 1. Right-click a folder and select **Export folder to PDF**, or run **Export folder to PDF…** from the command palette (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>).
 2. Pick **One PDF per note** or **One combined PDF**.
-3. Select **Export** and choose where to save.
+3. Optionally, open **Advanced** to change code colors or use your theme for this export. Select **Save as default** to keep the choices for next time.
+4. Select **Export** and choose where to save.
 
 > [!TIP]
 > Want a single shareable document? Choose **One combined PDF**. You get a title page, a clickable table of contents, and bookmarks for every folder.
 
 ## ⚙️ Settings
+
+Defaults for every export, under **Settings → Batch PDF Export**:
 
 | Setting | Default |
 | :--- | :--- |
@@ -96,6 +101,8 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 | Title page and table of contents | ✅ On |
 | Date shown | `date` property, else date modified |
 | Date format | `YYYY-MM-DD` |
+| Inline code colors | Light (also Dark, or Match app) |
+| Code block colors | Light (also Dark, or Match app) |
 | Use community theme and snippets | ⬜ Off |
 | Render timeout | 10 s per note |
 
@@ -103,6 +110,7 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 
 - Embedded PDFs, audio, video and canvases print as placeholders.
 - Links between separate PDFs work in desktop viewers (Acrobat, Foxit, SumatraPDF), but not in most browsers.
+- Code block options read from the fence line by some plugins (Shiki titles and line numbers, Advanced Codeblock line numbers) are not printed, the same as in Obsidian's own PDF export. Code Styler is supported.
 - Mermaid diagrams need your vault's Mermaid permission. The export asks for it if it's missing.
 
 > [!NOTE]
@@ -159,7 +167,7 @@ Copy `main.js`, `manifest.json` and `styles.css` into a **test vault** at `.obsi
 <details>
 <summary><b>Releasing</b></summary>
 
-Bump `version` in `manifest.json` and `versions.json`, then push a tag with the same version (no `v` prefix). CI builds the plugin and creates a draft release for you to publish.
+Bump `version` in `manifest.json`, `package.json` and `versions.json`, then push a tag with the same version (no `v` prefix). CI builds the plugin and creates a draft release for you to publish.
 
 </details>
 

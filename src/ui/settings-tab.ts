@@ -128,6 +128,24 @@ export class BatchPdfExportSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'group',
+				heading: 'Style',
+				items: [
+					{
+						name: 'Inline code colors',
+						desc: 'Colors for `inline code`. Match app uses dark colors when Obsidian is in dark mode. You can change it for a single export in the export dialog.',
+						aliases: ['dark'],
+						control: { type: 'dropdown', key: 'inlineCodeColors', options: { light: 'Light', dark: 'Dark', app: 'Match app' } },
+					},
+					{
+						name: 'Code block colors',
+						desc: 'Colors for fenced code blocks. Match app uses dark colors when Obsidian is in dark mode. You can change it for a single export in the export dialog.',
+						aliases: ['dark', 'syntax highlighting'],
+						control: { type: 'dropdown', key: 'codeBlockColors', options: { light: 'Light', dark: 'Dark', app: 'Match app' } },
+					},
+				],
+			},
+			{
+				type: 'group',
 				heading: 'Advanced',
 				items: [
 					{
