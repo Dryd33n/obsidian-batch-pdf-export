@@ -1,16 +1,17 @@
 import { TFolder } from 'obsidian';
-import type { ExportNote, NoteSelection } from '../types';
+import type { ExportNote, ExportSource, NoteSelection } from '../types';
 import { nodePath } from '../utils/node';
 import { sanitizeFileName, uniqueName } from '../utils/paths';
 import { EMPTY_SELECTION, isNote, orderRank, orderedChildren } from './note-order';
 
 /**
- * Lists the markdown notes in a folder in export order. By default each
+ * Lists the markdown notes in an export source in export order. Selected notes
+ * sit at the top level and selected folders keep their own structure. By default each
  * folder's notes come first, then its subfolders, both sorted by name; a
  * selection can reorder them within their folder and leave some out.
  */
 export function collectNotes(
-	folder: TFolder,
+	source: ExportSource,
 	includeSubfolders: boolean,
 	selection: NoteSelection = EMPTY_SELECTION,
 ): ExportNote[] {
@@ -18,7 +19,7 @@ export function collectNotes(
 	const rank = orderRank(selection.order);
 	const removed = new Set(selection.removed);
 
-	const walk = (current: TFolder, relativeFolder: string) => {
+	const walk = (current: TFolder | ExportSource, relativeFolder: string) => {
 		for (const item of orderedChildren(current, includeSubfolders, rank)) {
 			if (removed.has(item.path)) continue;
 			if (isNote(item)) {
@@ -29,7 +30,7 @@ export function collectNotes(
 		}
 	};
 
-	walk(folder, '');
+	walk(source, '');
 	return notes;
 }
 

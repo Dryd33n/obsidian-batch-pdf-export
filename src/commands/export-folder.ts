@@ -1,8 +1,9 @@
 import { Notice, TFolder } from 'obsidian';
 import { ExportError } from '../export/exporter';
 import { pathState } from '../export/output';
+import { folderSource, selectionSource } from '../export/source';
 import type BatchPdfExportPlugin from '../main';
-import type { ExportOptions } from '../types';
+import type { ExportOptions, ExportSource } from '../types';
 import { confirmModal } from '../ui/confirm-modal';
 import { ExportModal } from '../ui/export-modal';
 import { FolderSuggestModal } from '../ui/folder-suggest-modal';
@@ -13,7 +14,7 @@ export function registerExportCommands(plugin: BatchPdfExportPlugin): void {
 	plugin.addCommand({
 		id: 'export-folder',
 		name: 'Export folder to PDF…',
-		callback: () => new FolderSuggestModal(plugin.app, (folder) => openExportModal(plugin, folder)).open(),
+		callback: () => new FolderSuggestModal(plugin.app, (folder) => openExportModal(plugin, folderSource(plugin.app, folder))).open(),
 	});
 
 	plugin.registerEvent(
@@ -24,18 +25,33 @@ export function registerExportCommands(plugin: BatchPdfExportPlugin): void {
 					.setTitle('Export folder to PDF')
 					.setIcon('file-output')
 					.setSection('action')
-					.onClick(() => openExportModal(plugin, file)),
+					.onClick(() => openExportModal(plugin, folderSource(plugin.app, file))),
+			);
+		}),
+	);
+
+	// Right-clicking a multi-selection in the file explorer.
+	plugin.registerEvent(
+		plugin.app.workspace.on('files-menu', (menu, files) => {
+			const source = selectionSource(plugin.app, files);
+			if (!source) return;
+			menu.addItem((item) =>
+				item
+					.setTitle('Export selection to PDF')
+					.setIcon('file-output')
+					.setSection('action')
+					.onClick(() => openExportModal(plugin, source)),
 			);
 		}),
 	);
 }
 
-export function openExportModal(plugin: BatchPdfExportPlugin, folder: TFolder): void {
-	new ExportModal(plugin, folder, (options) => void startExport(plugin, folder, options)).open();
+export function openExportModal(plugin: BatchPdfExportPlugin, source: ExportSource): void {
+	new ExportModal(plugin, source, (options) => void startExport(plugin, source, options)).open();
 }
 
 /** Runs an export with progress, cancel and result notices. */
-async function startExport(plugin: BatchPdfExportPlugin, folder: TFolder, options: ExportOptions): Promise<void> {
+async function startExport(plugin: BatchPdfExportPlugin, source: ExportSource, options: ExportOptions): Promise<void> {
 	if (plugin.isExporting) {
 		new Notice('An export is already running.');
 		return;
@@ -43,7 +59,7 @@ async function startExport(plugin: BatchPdfExportPlugin, folder: TFolder, option
 	// Created on first progress update, so nothing shows if the save dialog is cancelled.
 	let progress = null as ProgressNotice | null;
 	try {
-		const result = await plugin.exportFolder(folder, options, {
+		const result = await plugin.exportSource(source, options, {
 			onProgress: (message) => {
 				progress ??= new ProgressNotice(message);
 				progress.setText(message);

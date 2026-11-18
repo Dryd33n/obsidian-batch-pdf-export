@@ -4,10 +4,10 @@ import { EMPTY_SELECTION, copySelection, isDefaultSelection } from '../export/no
 import { saveSelection, savedSelection } from '../export/saved-selections';
 import type BatchPdfExportPlugin from '../main';
 import { CODE_COLOR_OPTIONS, type CodeColors, type StyleOptions } from '../settings';
-import type { ExportMode, ExportOptions, NoteSelection } from '../types';
+import type { ExportMode, ExportOptions, ExportSource, NoteSelection } from '../types';
 import { ReorderModal } from './reorder-modal';
 
-/** Asks how to export a folder: one PDF per note or one combined PDF. */
+/** Asks how to export a folder or selection: one PDF per note or one combined PDF. */
 export class ExportModal extends Modal {
 	private mode: ExportMode;
 	private includeSubfolders: boolean;
@@ -21,7 +21,7 @@ export class ExportModal extends Modal {
 
 	constructor(
 		private readonly plugin: BatchPdfExportPlugin,
-		private readonly folder: TFolder,
+		private readonly source: ExportSource,
 		private readonly onSubmit: (options: ExportOptions) => void,
 	) {
 		super(plugin.app);
@@ -29,9 +29,9 @@ export class ExportModal extends Modal {
 		this.includeSubfolders = plugin.settings.includeSubfolders;
 		const { inlineCodeColors, codeBlockColors, useTheme } = plugin.settings;
 		this.style = { inlineCodeColors, codeBlockColors, useTheme };
-		this.noteSelection = savedSelection(plugin, folder) ?? copySelection(EMPTY_SELECTION);
-		const name = folder.isRoot() ? plugin.app.vault.getName() : folder.name;
-		this.setTitle(`Export “${name}” to PDF`);
+		const saved = source.folder ? savedSelection(plugin, source.folder) : null;
+		this.noteSelection = saved ?? copySelection(EMPTY_SELECTION);
+		this.setTitle(source.folder ? `Export “${source.name}” to PDF` : 'Export selection to PDF');
 	}
 
 	onOpen(): void {
@@ -48,17 +48,20 @@ export class ExportModal extends Modal {
 				}),
 		);
 
-		new Setting(contentEl).setName('Include subfolders').addToggle((toggle) =>
-			toggle.setValue(this.includeSubfolders).onChange((value) => {
-				this.includeSubfolders = value;
-				this.update();
-			}),
-		);
+		// A selection of notes alone has no subfolders to include.
+		if (this.source.folder || this.source.items.some((item) => item instanceof TFolder)) {
+			new Setting(contentEl).setName('Include subfolders').addToggle((toggle) =>
+				toggle.setValue(this.includeSubfolders).onChange((value) => {
+					this.includeSubfolders = value;
+					this.update();
+				}),
+			);
+		}
 
 		this.selectionSetting = new Setting(contentEl).addButton((button) => {
 			this.selectionButton = button;
 			button.onClick(() =>
-				new ReorderModal(this.plugin, this.folder, this.includeSubfolders, this.mode === 'single', this.noteSelection, (selection) => {
+				new ReorderModal(this.plugin, this.source, this.includeSubfolders, this.mode === 'single', this.noteSelection, (selection) => {
 					this.noteSelection = selection;
 					this.update();
 				}).open(),
@@ -137,8 +140,8 @@ export class ExportModal extends Modal {
 
 	/** Refreshes the note selection row, the note count and the Export button. */
 	private update(): void {
-		const all = collectNotes(this.folder, this.includeSubfolders);
-		const chosen = collectNotes(this.folder, this.includeSubfolders, this.noteSelection);
+		const all = collectNotes(this.source, this.includeSubfolders);
+		const chosen = collectNotes(this.source, this.includeSubfolders, this.noteSelection);
 		const leftOut = all.length - chosen.length;
 
 		this.updateSelectionSetting(chosen.map((note) => note.file.path), leftOut);
@@ -161,10 +164,10 @@ export class ExportModal extends Modal {
 		setting.setName(combined ? 'Note order' : 'Notes');
 		this.selectionButton?.setButtonText(combined ? 'Reorder and remove…' : 'Remove notes…');
 
-		const saved = this.plugin.settings.savedSelections[this.folder.path];
+		const saved = this.savedForFolder();
 		const usingSaved = saved !== undefined && sameSelection(saved, this.noteSelection);
 		// Custom order: the included notes are not in the default order.
-		const defaultPaths = collectNotes(this.folder, this.includeSubfolders, { order: [], removed: this.noteSelection.removed }).map(
+		const defaultPaths = collectNotes(this.source, this.includeSubfolders, { order: [], removed: this.noteSelection.removed }).map(
 			(note) => note.file.path,
 		);
 		const customOrder = combined && chosenPaths.some((path, index) => path !== defaultPaths[index]);
@@ -199,11 +202,18 @@ export class ExportModal extends Modal {
 	/** Back to alphabetical order with every note, forgetting any saved order for this folder. */
 	private async resetSelection(): Promise<void> {
 		this.noteSelection = copySelection(EMPTY_SELECTION);
-		if (this.plugin.settings.savedSelections[this.folder.path]) {
-			await saveSelection(this.plugin, this.folder, this.noteSelection);
+		const folder = this.source.folder;
+		if (folder && this.savedForFolder()) {
+			await saveSelection(this.plugin, folder, this.noteSelection);
 			new Notice('Cleared the saved order for this folder.');
 		}
 		this.update();
+	}
+
+	/** The folder's saved selection. Selections are never saved. */
+	private savedForFolder(): NoteSelection | undefined {
+		const folder = this.source.folder;
+		return folder ? this.plugin.settings.savedSelections[folder.path] : undefined;
 	}
 
 	private async submit(): Promise<void> {

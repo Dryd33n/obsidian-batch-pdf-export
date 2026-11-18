@@ -1,5 +1,5 @@
 import { TFile, TFolder, type TAbstractFile } from 'obsidian';
-import type { NoteSelection } from '../types';
+import type { ExportSource, NoteSelection } from '../types';
 import { naturalCompare } from '../utils/paths';
 
 export type SortBy = 'name' | 'created' | 'modified';
@@ -16,18 +16,22 @@ export function orderRank(order: readonly string[]): Map<string, number> {
 }
 
 /**
- * A folder's notes and subfolders in export order. By default notes come
- * first, then subfolders, each sorted by name. Items ranked in `rank` move to
- * the front in that order; the rest keep the default order after them.
+ * A folder's notes and subfolders in export order, or the top-level items of
+ * an export source. By default notes come first, then subfolders, each sorted
+ * by name. Items ranked in `rank` move to the front in that order; the rest
+ * keep the default order after them.
  */
 export function orderedChildren(
-	folder: TFolder,
+	parent: TFolder | ExportSource,
 	includeSubfolders: boolean,
 	rank: ReadonlyMap<string, number>,
 ): TAbstractFile[] {
-	const notes = folder.children.filter(isNote).sort((a, b) => naturalCompare(a.basename, b.basename));
-	const folders = includeSubfolders
-		? folder.children
+	const children = parent instanceof TFolder ? parent.children : parent.items;
+	// Folders picked in a selection are always exported; a folder's subfolders only when asked.
+	const withFolders = includeSubfolders || !(parent instanceof TFolder || parent.folder);
+	const notes = children.filter(isNote).sort((a, b) => naturalCompare(a.basename, b.basename));
+	const folders = withFolders
+		? children
 				.filter((child): child is TFolder => child instanceof TFolder && countNotes(child) > 0)
 				.sort((a, b) => naturalCompare(a.name, b.name))
 		: [];
@@ -48,9 +52,9 @@ export function countNotes(folder: TFolder): number {
 }
 
 /** An explicit order for every note and subfolder, sorted by `sortBy` within each folder. */
-export function sortedOrder(folder: TFolder, includeSubfolders: boolean, sortBy: SortBy): string[] {
+export function sortedOrder(source: ExportSource, includeSubfolders: boolean, sortBy: SortBy): string[] {
 	const order: string[] = [];
-	const walk = (current: TFolder) => {
+	const walk = (current: TFolder | ExportSource) => {
 		const items = orderedChildren(current, includeSubfolders, new Map());
 		if (sortBy !== 'name') {
 			const time = (item: TAbstractFile) =>
@@ -63,7 +67,7 @@ export function sortedOrder(folder: TFolder, includeSubfolders: boolean, sortBy:
 			if (item instanceof TFolder) walk(item);
 		}
 	};
-	walk(folder);
+	walk(source);
 	return order;
 }
 

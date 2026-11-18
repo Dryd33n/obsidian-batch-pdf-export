@@ -81,6 +81,7 @@ Or open the [plugin listing](https://community.obsidian.md/plugins/batch-pdf-exp
 ## 🚀 Usage
 
 1. Right-click a folder and select **Export folder to PDF**, or run **Export folder to PDF…** from the command palette (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>P</kbd>).
+   To export only some notes, select several notes or folders in the file explorer (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>-click or <kbd>Shift</kbd>-click), right-click the selection and select **Export selection to PDF**. Selected folders are exported with all their notes.
 2. Pick **One PDF per note** or **One combined PDF**.
 3. Optionally, select **Reorder and remove…** (combined) or **Remove notes…** (one per note) to change the note order or leave notes out. See [Note order](#-note-order).
 4. Optionally, open **Advanced** to change code colors or use your theme for this export. Select **Save as default** to keep the choices for next time.
@@ -96,7 +97,7 @@ Notes are exported in alphabetical order, each folder's notes before its subfold
 - **Drag** a note or folder, or use the **↑ ↓** buttons, to move it within its folder. Notes stay in their own folder, so the table of contents and bookmarks keep the folder structure.
 - **Sort by** name, date created or date modified, then adjust from there.
 - Select **✕** to leave a note or a whole folder out. Removed items are listed under **Removed**, where you can restore them.
-- Select **Done** to use the order for this export, or **Save for next time** to keep it for this folder. Saved orders follow notes when they are renamed or moved.
+- Select **Done** to use the order for this export, or **Save for next time** to keep it for this folder. Saved orders follow notes when they are renamed or moved. Orders for a file explorer selection can't be saved.
 
 New notes are added at the end of their folder. Select **Reset** in the export dialog to go back to alphabetical order and forget the saved order.
 

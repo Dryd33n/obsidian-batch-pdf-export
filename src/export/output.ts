@@ -15,7 +15,7 @@ export async function chooseOutputPath(mode: ExportMode, name: string, lastDirec
 
 	if (mode === 'single') {
 		const chosen = await showSaveDialog({
-			title: 'Export folder as one PDF',
+			title: 'Export as one PDF',
 			defaultPath: path.join(directory, `${baseName}.pdf`),
 			filters: [{ name: 'PDF', extensions: ['pdf'] }],
 			properties: ['showOverwriteConfirmation', 'createDirectory'],

@@ -1,7 +1,17 @@
-import type { TFile } from 'obsidian';
+import type { TAbstractFile, TFile, TFolder } from 'obsidian';
 import type { StyleOptions } from './settings';
 
 export type ExportMode = 'separate' | 'single';
+
+/** What an export covers: a folder, or notes and folders selected in the file explorer. */
+export interface ExportSource {
+	/** Shown in titles. Also the default output name and the combined PDF's title. */
+	name: string;
+	/** The top-level notes and folders: the folder's children, or the selection. */
+	items: TAbstractFile[];
+	/** The exported folder, which can have a saved selection. Unset for a selection. */
+	folder?: TFolder;
+}
 
 export interface ExportOptions {
 	mode: ExportMode;

@@ -3,7 +3,7 @@ import { collectNotes } from '../export/collect';
 import { copySelection, countNotes, orderRank, orderedChildren, sortedOrder, type SortBy } from '../export/note-order';
 import { saveSelection } from '../export/saved-selections';
 import type BatchPdfExportPlugin from '../main';
-import type { NoteSelection } from '../types';
+import type { ExportSource, NoteSelection } from '../types';
 
 type SortChoice = SortBy | 'custom';
 
@@ -16,7 +16,7 @@ const SORT_OPTIONS: Record<SortChoice, string> = {
 
 interface Dragged {
 	item: TAbstractFile;
-	parent: TFolder;
+	parent: TFolder | ExportSource;
 }
 
 /**
@@ -40,7 +40,7 @@ export class ReorderModal extends Modal {
 
 	constructor(
 		private readonly plugin: BatchPdfExportPlugin,
-		private readonly folder: TFolder,
+		private readonly source: ExportSource,
 		private readonly includeSubfolders: boolean,
 		/** False when each note gets its own PDF, where order doesn't matter. */
 		private readonly canReorder: boolean,
@@ -74,7 +74,7 @@ export class ReorderModal extends Modal {
 					.onChange((value) => {
 						if (value === 'custom') return;
 						this.sortChoice = value as SortBy;
-						this.order = value === 'name' ? [] : sortedOrder(this.folder, this.includeSubfolders, value as SortBy);
+						this.order = value === 'name' ? [] : sortedOrder(this.source, this.includeSubfolders, value as SortBy);
 						this.refresh();
 					}),
 			);
@@ -95,14 +95,18 @@ export class ReorderModal extends Modal {
 		this.removedEl = contentEl.createDiv();
 		this.countEl = contentEl.createEl('p', { cls: 'batch-pdf-export-count setting-item-description' });
 
-		new Setting(contentEl)
-			.addButton((button) => {
+		const buttons = new Setting(contentEl);
+		// Only a folder's selection can be saved; a file explorer selection changes every time.
+		if (this.source.folder) {
+			buttons.addButton((button) => {
 				this.doneButtons.push(button.buttonEl);
 				button
 					.setButtonText('Save for next time')
 					.setTooltip('Use this order and these notes whenever you export this folder')
 					.onClick(() => void this.finish(true));
-			})
+			});
+		}
+		buttons
 			.addButton((button) => button.setButtonText('Cancel').onClick(() => this.close()))
 			.addButton((button) => {
 				this.doneButtons.push(button.buttonEl);
@@ -126,8 +130,8 @@ export class ReorderModal extends Modal {
 
 	private async finish(save: boolean): Promise<void> {
 		const selection = copySelection(this.noteSelection);
-		if (save) {
-			await saveSelection(this.plugin, this.folder, selection);
+		if (save && this.source.folder) {
+			await saveSelection(this.plugin, this.source.folder, selection);
 			new Notice('Saved for the next time you export this folder.');
 		}
 		this.onDone(selection);
@@ -140,11 +144,11 @@ export class ReorderModal extends Modal {
 		if (select) select.value = this.sortChoice;
 
 		this.listEl.empty();
-		this.renderItems(this.listEl, this.folder, 0);
+		this.renderItems(this.listEl, this.source, 0);
 		this.renderRemoved();
 
-		const total = collectNotes(this.folder, this.includeSubfolders).length;
-		const included = collectNotes(this.folder, this.includeSubfolders, this.noteSelection).length;
+		const total = collectNotes(this.source, this.includeSubfolders).length;
+		const included = collectNotes(this.source, this.includeSubfolders, this.noteSelection).length;
 		this.countEl.setText(
 			included === 0 ? 'Every note is removed. Restore at least one to export.' : `${included} of ${total} notes included.`,
 		);
@@ -153,7 +157,7 @@ export class ReorderModal extends Modal {
 		this.restoreFocus();
 	}
 
-	private renderItems(parentEl: HTMLElement, folder: TFolder, depth: number): void {
+	private renderItems(parentEl: HTMLElement, folder: TFolder | ExportSource, depth: number): void {
 		const items = orderedChildren(folder, this.includeSubfolders, this.rank).filter((item) => !this.removed.has(item.path));
 		items.forEach((item, index) => {
 			const itemEl = parentEl.createDiv({ cls: 'batch-pdf-export-reorder-item' });
@@ -206,7 +210,7 @@ export class ReorderModal extends Modal {
 	}
 
 	/** Moves `item` before or after `target`, a sibling in the same folder. */
-	private move(item: TAbstractFile, parent: TFolder, target: TAbstractFile, after: boolean): void {
+	private move(item: TAbstractFile, parent: TFolder | ExportSource, target: TAbstractFile, after: boolean): void {
 		// Every sibling, including removed ones, so a restored item returns to its place.
 		const siblings = orderedChildren(parent, this.includeSubfolders, this.rank).filter((sibling) => sibling !== item);
 		const index = siblings.indexOf(target);
@@ -219,7 +223,7 @@ export class ReorderModal extends Modal {
 		this.refresh();
 	}
 
-	private makeDraggable(itemEl: HTMLElement, row: HTMLElement, item: TAbstractFile, parent: TFolder): void {
+	private makeDraggable(itemEl: HTMLElement, row: HTMLElement, item: TAbstractFile, parent: TFolder | ExportSource): void {
 		itemEl.draggable = true;
 
 		itemEl.addEventListener('dragstart', (event) => {
@@ -279,13 +283,13 @@ export class ReorderModal extends Modal {
 	private renderRemoved(): void {
 		this.removedEl.empty();
 		const removed: TAbstractFile[] = [];
-		const walk = (folder: TFolder) => {
+		const walk = (folder: TFolder | ExportSource) => {
 			for (const item of orderedChildren(folder, this.includeSubfolders, this.rank)) {
 				if (this.removed.has(item.path)) removed.push(item);
 				else if (item instanceof TFolder) walk(item);
 			}
 		};
-		walk(this.folder);
+		walk(this.source);
 		if (removed.length === 0) return;
 
 		const details = this.removedEl.createEl('details', { cls: 'batch-pdf-export-removed' });

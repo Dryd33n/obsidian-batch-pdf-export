@@ -1,10 +1,10 @@
-import { Plugin, TFolder } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { registerExportCommands } from './commands/export-folder';
 import { runExport, type ExportCallbacks } from './export/exporter';
 import { registerSelectionTracking } from './export/saved-selections';
 import { DEFAULT_SETTINGS, type BatchPdfExportSettings } from './settings';
 import { BatchPdfExportSettingTab } from './ui/settings-tab';
-import type { ExportOptions, ExportResult } from './types';
+import type { ExportOptions, ExportResult, ExportSource } from './types';
 
 export default class BatchPdfExportPlugin extends Plugin {
 	settings!: BatchPdfExportSettings;
@@ -17,16 +17,16 @@ export default class BatchPdfExportPlugin extends Plugin {
 		registerSelectionTracking(this);
 	}
 
-	/** Exports a folder to PDF. Only one export runs at a time. */
-	async exportFolder(
-		folder: TFolder,
+	/** Exports a folder or a selection to PDF. Only one export runs at a time. */
+	async exportSource(
+		source: ExportSource,
 		options: ExportOptions,
 		callbacks: Partial<ExportCallbacks> = {},
 	): Promise<ExportResult> {
 		if (this.isExporting) throw new Error('An export is already running.');
 		this.isExporting = true;
 		try {
-			return await runExport(this, folder, options, {
+			return await runExport(this, source, options, {
 				onProgress: callbacks.onProgress ?? (() => {}),
 				isCancelled: callbacks.isCancelled ?? (() => false),
 				confirm: callbacks.confirm ?? (() => Promise.resolve(false)),

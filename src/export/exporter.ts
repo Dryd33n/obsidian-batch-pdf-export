@@ -1,7 +1,6 @@
-import { TFolder } from 'obsidian';
 import type BatchPdfExportPlugin from '../main';
 import { PAGE_SIZES_MM, type BatchPdfExportSettings } from '../settings';
-import type { ExportOptions, ExportResult, RenderedNote } from '../types';
+import type { ExportOptions, ExportResult, ExportSource, RenderedNote } from '../types';
 import { formatDate } from '../utils/dates';
 import { pauseBackgroundThrottling } from '../utils/electron';
 import { nodePath } from '../utils/node';
@@ -34,27 +33,30 @@ export interface ExportCallbacks {
 
 export class ExportError extends Error {}
 
-/** Exports a folder of notes to PDF. Shows the save dialog unless `options.outputPath` is set. */
+/** Exports a folder or a selection of notes to PDF. Shows the save dialog unless `options.outputPath` is set. */
 export async function runExport(
 	plugin: BatchPdfExportPlugin,
-	folder: TFolder,
+	source: ExportSource,
 	options: ExportOptions,
 	callbacks: ExportCallbacks,
 ): Promise<ExportResult> {
 	const { app, settings } = plugin;
 	const style = { ...settings, ...options.style };
 	const result: ExportResult = { outputs: [], failures: [], cancelled: false };
-	const folderName = folder.isRoot() ? app.vault.getName() : folder.name;
+	const folderName = source.name;
+	const what = source.folder ? `“${folderName}”` : 'The selection';
 
-	const notes = collectNotes(folder, options.includeSubfolders, options.selection);
-	if (notes.length === 0) throw new ExportError(`There are no notes in “${folderName}” to export.`);
+	const notes = collectNotes(source, options.includeSubfolders, options.selection);
+	if (notes.length === 0) {
+		throw new ExportError(source.folder ? `There are no notes in “${folderName}” to export.` : 'There are no notes in the selection to export.');
+	}
 
 	if (
 		options.mode === 'single' &&
 		notes.length > LARGE_EXPORT_NOTES &&
 		!(await callbacks.confirm(
 			'Large export',
-			`“${folderName}” contains ${notes.length} notes. Combining them into one PDF may take a while and use a lot of memory.`,
+			`${what} contains ${notes.length} notes. Combining them into one PDF may take a while and use a lot of memory.`,
 			'Export anyway',
 		))
 	) {
